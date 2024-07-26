@@ -6,18 +6,20 @@ The MicroPython project
   <img src="https://raw.githubusercontent.com/micropython/micropython/master/logo/upython-with-micro.jpg" alt="MicroPython Logo"/>
 </p>
 
-Single core is still supported, just by adding CONFIG_FREERTOS_UNICORE=y to
-a custom sdkconfig file.
 
-for ESP32 SOLO-1 you may do this.
-
-modify file ports/esp32/boards/sdkconfig.base and add:
-
-# FreeRTOS
-CONFIG_FREERTOS_UNICORE=y
-
-it should be ok to run in unicore mode on a dual core.
-
+    
+    Single core is still supported, just by adding CONFIG_FREERTOS_UNICORE=y to
+    a custom sdkconfig file.
+    
+    for ESP32 SOLO-1 you may do this.
+    
+    modify file ports/esp32/boards/sdkconfig.base and add:
+    
+    # FreeRTOS
+    CONFIG_FREERTOS_UNICORE=y
+    
+    it should be ok to run in unicore mode on a dual core.
+    
 
 This is the MicroPython project, which aims to put an implementation
 of Python 3.x on microcontrollers and small embedded systems.
