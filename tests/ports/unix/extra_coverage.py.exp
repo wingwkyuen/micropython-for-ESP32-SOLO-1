@@ -56,13 +56,13 @@ cmath           collections     cppexample      cryptolib
 deflate         errno           example_package
 ffi             framebuf        gc              hashlib
 heapq           io              json            machine
-math            os              platform        random
-re              select          socket          struct
-sys             termios         time            tls
-uctypes         vfs             websocket
+marshal         math            os              platform
+random          re              select          socket
+struct          sys             termios         time
+tls             uctypes         vfs             websocket
 me
 
-micropython     machine         math
+micropython     machine         marshal         math
 
 argv            atexit          byteorder       exc_info
 executable      exit            getsizeof       implementation
@@ -144,6 +144,11 @@ cc99
 22ff
 -1
 -1
+0
+0
+abc123
+-1
+-2
 # pairheap
 create: 0 0 0 0
 pop all: 0 1 2 3
@@ -163,6 +168,8 @@ pop all: 1 2 4 5
 1 1
 1 1
 0 0
+1 1
+# stackctrl
 1 1
 # end coverage.c
 0123456789 b'0123456789'

@@ -1,4 +1,4 @@
-// Deinitions common to all SAMD21 boards
+// Definitions common to all SAMD21 boards
 #include "samd21.h"
 
 #define MICROPY_CONFIG_ROM_LEVEL        (MICROPY_CONFIG_ROM_LEVEL_BASIC_FEATURES)
@@ -51,6 +51,7 @@ unsigned long trng_random_u32(int delay);
 #ifndef MICROPY_HW_UART_RTSCTS
 #define MICROPY_HW_UART_RTSCTS          (SAMD21_EXTRA_FEATURES)
 #endif
+#define MICROPY_PY_MACHINE_UART_IRQ     (SAMD21_EXTRA_FEATURES)
 
 // selected extensions of the extra features set
 #define MICROPY_PY_OS_URANDOM           (1)
@@ -63,12 +64,20 @@ unsigned long trng_random_u32(int delay);
 #define MICROPY_PY_BUILTINS_ROUND_INT   (SAMD21_EXTRA_FEATURES)
 #define MICROPY_CAN_OVERRIDE_BUILTINS   (SAMD21_EXTRA_FEATURES)
 #define MICROPY_PY_SYS_STDIO_BUFFER     (SAMD21_EXTRA_FEATURES)
+#ifndef MICROPY_PY_FRAMEBUF
 #define MICROPY_PY_FRAMEBUF             (SAMD21_EXTRA_FEATURES)
+#endif
+#ifndef MICROPY_PY_ASYNCIO
 #define MICROPY_PY_ASYNCIO              (SAMD21_EXTRA_FEATURES)
+#endif
+#ifndef MICROPY_PY_SELECT
 #define MICROPY_PY_SELECT               (SAMD21_EXTRA_FEATURES)
+#endif
 #define MICROPY_PY_ERRNO                (SAMD21_EXTRA_FEATURES)
 #define MICROPY_PY_DEFLATE              (SAMD21_EXTRA_FEATURES)
+#ifndef MICROPY_PY_ONEWIRE
 #define MICROPY_PY_ONEWIRE              (SAMD21_EXTRA_FEATURES)
+#endif
 
 #ifndef MICROPY_PY_MACHINE_PIN_BOARD_CPU
 #define MICROPY_PY_MACHINE_PIN_BOARD_CPU (1)

@@ -1,4 +1,4 @@
-// Deinitions common to all SAMD51 boards
+// Definitions common to all SAMD51 boards
 #include "samd51.h"
 
 #define MICROPY_CONFIG_ROM_LEVEL        (MICROPY_CONFIG_ROM_LEVEL_FULL_FEATURES)
@@ -15,6 +15,7 @@
 #define MICROPY_PY_ONEWIRE              (1)
 #define MICROPY_PY_RANDOM_SEED_INIT_FUNC (trng_random_u32())
 unsigned long trng_random_u32(void);
+#define MICROPY_PY_MACHINE_UART_IRQ     (1)
 
 // fatfs configuration used in ffconf.h
 #define MICROPY_FATFS_ENABLE_LFN            (1)

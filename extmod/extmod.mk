@@ -29,6 +29,7 @@ SRC_EXTMOD_C += \
 	extmod/modjson.c \
 	extmod/modlwip.c \
 	extmod/modmachine.c \
+	extmod/modmarshal.c \
 	extmod/modnetwork.c \
 	extmod/modonewire.c \
 	extmod/modopenamp.c \
@@ -42,6 +43,7 @@ SRC_EXTMOD_C += \
 	extmod/modsocket.c \
 	extmod/modtls_axtls.c \
 	extmod/modtls_mbedtls.c \
+	extmod/mbedtls/mbedtls_alt.c \
 	extmod/modtime.c \
 	extmod/moductypes.c \
 	extmod/modvfs.c \
@@ -51,6 +53,7 @@ SRC_EXTMOD_C += \
 	extmod/network_esp_hosted.c \
 	extmod/network_lwip.c \
 	extmod/network_ninaw10.c \
+	extmod/network_ppp_lwip.c \
 	extmod/network_wiznet5k.c \
 	extmod/os_dupterm.c \
 	extmod/vfs.c \
@@ -59,6 +62,8 @@ SRC_EXTMOD_C += \
 	extmod/vfs_fat_diskio.c \
 	extmod/vfs_fat_file.c \
 	extmod/vfs_lfs.c \
+	extmod/vfs_rom.c \
+	extmod/vfs_rom_file.c \
 	extmod/vfs_posix.c \
 	extmod/vfs_posix_file.c \
 	extmod/vfs_reader.c \
@@ -241,6 +246,10 @@ MBEDTLS_CONFIG_FILE ?= \"mbedtls/mbedtls_config_port.h\"
 GIT_SUBMODULES += $(MBEDTLS_DIR)
 CFLAGS_EXTMOD += -DMBEDTLS_CONFIG_FILE=$(MBEDTLS_CONFIG_FILE)
 CFLAGS_EXTMOD += -DMICROPY_SSL_MBEDTLS=1 -I$(TOP)/$(MBEDTLS_DIR)/include
+ifeq ($(MICROPY_PY_SSL_ECDSA_SIGN_ALT),1)
+CFLAGS_EXTMOD += -DMICROPY_PY_SSL_ECDSA_SIGN_ALT=1
+LDFLAGS_EXTMOD += -Wl,--wrap=mbedtls_ecdsa_write_signature
+endif
 SRC_THIRDPARTY_C += lib/mbedtls_errors/mp_mbedtls_errors.c
 SRC_THIRDPARTY_C += $(addprefix $(MBEDTLS_DIR)/library/,\
 	aes.c \
@@ -286,6 +295,7 @@ SRC_THIRDPARTY_C += $(addprefix $(MBEDTLS_DIR)/library/,\
 	pkcs12.c \
 	pkcs5.c \
 	pkparse.c \
+	pk_ecc.c \
 	pk_wrap.c \
 	pkwrite.c \
 	platform.c \
@@ -332,6 +342,8 @@ $(BUILD)/$(LWIP_DIR)/core/ipv4/dhcp.o: CFLAGS += -Wno-address
 SRC_THIRDPARTY_C += shared/netutils/netutils.c
 SRC_THIRDPARTY_C += $(addprefix $(LWIP_DIR)/,\
 	apps/mdns/mdns.c \
+	apps/mdns/mdns_domain.c \
+	apps/mdns/mdns_out.c \
 	core/def.c \
 	core/dns.c \
 	core/inet_chksum.c \
@@ -349,6 +361,7 @@ SRC_THIRDPARTY_C += $(addprefix $(LWIP_DIR)/,\
 	core/tcp_out.c \
 	core/timeouts.c \
 	core/udp.c \
+	core/ipv4/acd.c \
 	core/ipv4/autoip.c \
 	core/ipv4/dhcp.c \
 	core/ipv4/etharp.c \
@@ -367,6 +380,32 @@ SRC_THIRDPARTY_C += $(addprefix $(LWIP_DIR)/,\
 	core/ipv6/mld6.c \
 	core/ipv6/nd6.c \
 	netif/ethernet.c \
+	netif/ppp/auth.c \
+	netif/ppp/ccp.c \
+	netif/ppp/chap-md5.c \
+	netif/ppp/chap_ms.c \
+	netif/ppp/chap-new.c \
+	netif/ppp/demand.c \
+	netif/ppp/eap.c \
+	netif/ppp/ecp.c \
+	netif/ppp/eui64.c \
+	netif/ppp/fsm.c \
+	netif/ppp/ipcp.c \
+	netif/ppp/ipv6cp.c \
+	netif/ppp/lcp.c \
+	netif/ppp/magic.c \
+	netif/ppp/mppe.c \
+	netif/ppp/multilink.c \
+	netif/ppp/polarssl/md5.c \
+	netif/ppp/pppapi.c \
+	netif/ppp/ppp.c \
+	netif/ppp/pppcrypt.c \
+	netif/ppp/pppoe.c \
+	netif/ppp/pppol2tp.c \
+	netif/ppp/pppos.c \
+	netif/ppp/upap.c \
+	netif/ppp/utils.c \
+	netif/ppp/vj.c \
 	)
 ifeq ($(MICROPY_PY_LWIP_LOOPBACK),1)
 CFLAGS_EXTMOD += -DLWIP_NETIF_LOOPBACK=1
@@ -527,6 +566,7 @@ ifeq ($(MICROPY_PY_OPENAMP),1)
 OPENAMP_DIR = lib/open-amp
 LIBMETAL_DIR = lib/libmetal
 GIT_SUBMODULES += $(LIBMETAL_DIR) $(OPENAMP_DIR)
+MICROPY_PY_OPENAMP_MODE ?= 0
 include $(TOP)/extmod/libmetal/libmetal.mk
 
 INC += -I$(TOP)/$(OPENAMP_DIR)
@@ -536,12 +576,21 @@ ifeq ($(MICROPY_PY_OPENAMP_REMOTEPROC),1)
 CFLAGS += -DMICROPY_PY_OPENAMP_REMOTEPROC=1
 endif
 
+ifeq ($(MICROPY_PY_OPENAMP_MODE),0)
+CFLAGS += -DMICROPY_PY_OPENAMP_HOST=1
+CFLAGS_THIRDPARTY += -DVIRTIO_DRIVER_ONLY
+else ifeq ($(MICROPY_PY_OPENAMP_MODE),1)
+CFLAGS += -DMICROPY_PY_OPENAMP_DEVICE=1
+CFLAGS_THIRDPARTY += -DVIRTIO_DEVICE_ONLY
+else
+$(error Invalid Open-AMP mode specified: $(MICROPY_PY_OPENAMP_MODE))
+endif
+
 CFLAGS_THIRDPARTY += \
     -I$(BUILD)/openamp \
     -I$(TOP)/$(OPENAMP_DIR) \
     -I$(TOP)/$(OPENAMP_DIR)/lib/include/ \
     -DMETAL_INTERNAL \
-    -DVIRTIO_DRIVER_ONLY \
     -DNO_ATOMIC_64_SUPPORT \
     -DRPMSG_BUFFER_SIZE=512 \
 
@@ -571,6 +620,6 @@ $(BUILD)/$(OPENAMP_DIR)/lib/virtio_mmio/virtio_mmio_drv.o: CFLAGS += -Wno-unused
 # We need to have generated libmetal before compiling OpenAMP.
 $(addprefix $(BUILD)/, $(SRC_OPENAMP_C:.c=.o)): $(BUILD)/openamp/metal/config.h
 
-SRC_THIRDPARTY_C += $(SRC_LIBMETAL_C) $(SRC_OPENAMP_C)
+SRC_THIRDPARTY_C += $(SRC_OPENAMP_C) $(SRC_LIBMETAL_C:$(BUILD)/%=%)
 
 endif # MICROPY_PY_OPENAMP

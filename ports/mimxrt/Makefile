@@ -21,6 +21,7 @@ BUILD ?= build-$(BOARD)
 PORT ?= /dev/ttyACM0
 CROSS_COMPILE ?= arm-none-eabi-
 GIT_SUBMODULES += lib/tinyusb lib/nxp_driver
+UF2CONV ?= $(TOP)/tools/uf2conv.py
 
 # MicroPython feature configurations
 MICROPY_VFS_LFS2 ?= 1
@@ -78,6 +79,7 @@ INC += -I$(TOP)/lib/oofatfs
 INC += -I$(TOP)/lib/tinyusb/hw
 INC += -I$(TOP)/lib/tinyusb/hw/bsp/teensy_40
 INC += -I$(TOP)/lib/tinyusb/src
+INC += -I$(TOP)/shared/tinyusb
 INC += -I.
 INC += -Ihal
 
@@ -132,7 +134,6 @@ SRC_HAL_IMX_C += \
 	$(MCU_DIR)/drivers/fsl_lpi2c.c \
 	$(MCU_DIR)/drivers/fsl_lpspi.c \
 	$(MCU_DIR)/drivers/fsl_lpspi_edma.c \
-	$(MCU_DIR)/drivers/fsl_lpuart.c \
 	$(MCU_DIR)/drivers/fsl_pit.c \
 	$(MCU_DIR)/drivers/fsl_pwm.c \
 	$(MCU_DIR)/drivers/fsl_sai.c \
@@ -160,6 +161,13 @@ ifeq ($(MCU_SERIES),$(filter $(MCU_SERIES), MIMXRT1015 MIMXRT1021 MIMXRT1052 MIM
 SRC_HAL_IMX_C += \
 	$(MCU_DIR)/drivers/fsl_qtmr.c \
 	$(MCU_DIR)/drivers/fsl_romapi.c
+endif
+
+# If not empty, then it is 10xx.
+ifneq ($(findstring MIMXRT10, $(MCU_SERIES)),)
+APPLICATION_ADDR := 0x6000C000
+else
+APPLICATION_ADDR := 0x3000C000
 endif
 
 ifeq ($(MCU_SERIES), MIMXRT1176)
@@ -191,6 +199,7 @@ SRC_C += \
 	eth.c \
 	fatfs_port.c \
 	flash.c \
+	hal/fsl_lpuart.c \
 	hal/pwm_backport.c \
 	help.c \
 	led.c \
@@ -208,6 +217,7 @@ SRC_C += \
 	modmimxrt.c \
 	mphalport.c \
 	mpnetworkport.c \
+	msc_disk.c \
 	network_lan.c \
 	pendsv.c \
 	pin.c \
@@ -215,7 +225,7 @@ SRC_C += \
 	sdio.c \
 	systick.c \
 	ticks.c \
-	tusb_port.c \
+	usbd.c \
 
 SHARED_SRC_C += \
 	shared/libc/printf.c \
@@ -234,6 +244,7 @@ SHARED_SRC_C += \
 	shared/timeutils/timeutils.c \
 	shared/tinyusb/mp_usbd.c \
 	shared/tinyusb/mp_usbd_cdc.c \
+	shared/tinyusb/mp_usbd_descriptor.c \
 
 # Set flash driver name, base address and internal flash flag, based on the flash type.
 ifeq ($(MICROPY_HW_FLASH_TYPE),$(filter $(MICROPY_HW_FLASH_TYPE),qspi_nor_flash))
@@ -249,6 +260,11 @@ else ifeq ($(MICROPY_HW_FLASH_TYPE),$(filter $(MICROPY_HW_FLASH_TYPE),internal))
     CFLAGS += -DMICROPY_HW_FLASH_INTERNAL
 else
     $(error Error: Unknown board flash type $(MICROPY_HW_FLASH_TYPE))
+endif
+
+# Set a flag if the UF2 bootloader is used
+ifeq ($(USE_UF2_BOOTLOADER),1)
+	CFLAGS += -DMICROPY_MACHINE_UF2_BOOTLOADER=1
 endif
 
 # Add sources for respective board flash type
@@ -343,6 +359,7 @@ CFLAGS += \
 	-DBOARD_$(BOARD) \
 	-DBOARD_FLASH_SIZE=$(MICROPY_HW_FLASH_SIZE) \
 	-DCFG_TUSB_MCU=OPT_MCU_MIMXRT1XXX \
+	-DCFG_TUD_MAX_SPEED=OPT_MODE_HIGH_SPEED \
 	-DCLOCK_CONFIG_H='<boards/$(MCU_SERIES)_clock_config.h>' \
 	-DCPU_$(MCU_SERIES)$(MCU_CORE) \
 	-DCPU_$(MCU_VARIANT) \
@@ -409,6 +426,12 @@ endif
 ifdef MICROPY_HW_FLASH_CLK
 	CFLAGS += -DMICROPY_HW_FLASH_CLK=$(MICROPY_HW_FLASH_CLK)
 endif
+ifdef MICROPY_HW_FLASH_QE_CMD
+	CFLAGS += -DMICROPY_HW_FLASH_QE_CMD=$(MICROPY_HW_FLASH_QE_CMD)
+endif
+ifdef MICROPY_HW_FLASH_QE_ARG
+	CFLAGS += -DMICROPY_HW_FLASH_QE_ARG=$(MICROPY_HW_FLASH_QE_ARG)
+endif
 
 CFLAGS += $(CFLAGS_EXTRA)
 
@@ -467,7 +490,11 @@ $(BUILD)/lib/tinyusb/src/device/usbd.o: CFLAGS += -Wno-missing-braces
 # Build targets
 # =============================================================================
 
+ifeq ($(USE_UF2_BOOTLOADER),1)
+all: $(BUILD)/firmware.hex $(BUILD)/firmware.bin $(BUILD)/firmware.uf2
+else
 all: $(BUILD)/firmware.hex $(BUILD)/firmware.bin
+endif
 
 # Process linker scripts with C preprocessor to exchange LDDEFINES and
 #	aggregate output of preprocessor in a single linker script `link.ld`
@@ -483,6 +510,10 @@ $(BUILD)/firmware.bin: $(BUILD)/firmware.elf
 
 $(BUILD)/firmware.hex: $(BUILD)/firmware.elf
 	$(Q)$(OBJCOPY) -O ihex -R .eeprom $< $@
+
+$(BUILD)/firmware.uf2: $(BUILD)/firmware.elf
+	$(Q)$(OBJCOPY) -O binary -R .stack -R .ivt -R .flash_config $^ $@-binpart
+	$(Q)$(PYTHON) $(UF2CONV) -b $(APPLICATION_ADDR) -f MIMXRT10XX -c -o $@ $@-binpart
 
 # Making OBJ use an order-only dependency on the generated pins.h file
 # has the side effect of making the pins.h file before we actually compile

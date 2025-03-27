@@ -123,14 +123,13 @@ track of the code size of the core runtime and VM.
 
 In addition, the following ports are provided in this repository:
  - [cc3200](ports/cc3200) -- Texas Instruments CC3200 (including PyCom WiPy).
- - [esp32](ports/esp32) -- Espressif ESP32 SoC (including ESP32S2, ESP32S3, ESP32C3).
+ - [esp32](ports/esp32) -- Espressif ESP32 SoC (including ESP32S2, ESP32S3, ESP32C3, ESP32C6).
  - [esp8266](ports/esp8266) -- Espressif ESP8266 SoC.
  - [mimxrt](ports/mimxrt) -- NXP m.iMX RT (including Teensy 4.x).
  - [nrf](ports/nrf) -- Nordic Semiconductor nRF51 and nRF52.
  - [pic16bit](ports/pic16bit) -- Microchip PIC 16-bit.
  - [powerpc](ports/powerpc) -- IBM PowerPC (including Microwatt)
- - [qemu-arm](ports/qemu-arm) -- QEMU-based Arm emulated target (for testing)
- - [qemu-riscv](ports/qemu-riscv) -- QEMU-based RISC-V emulated target (for testing)
+ - [qemu](ports/qemu) -- QEMU-based emulated target (for testing)
  - [renesas-ra](ports/renesas-ra) -- Renesas RA family.
  - [rp2](ports/rp2) -- Raspberry Pi RP2040 (including Pico and Pico W).
  - [samd](ports/samd) -- Microchip (formerly Atmel) SAMD21 and SAMD51.

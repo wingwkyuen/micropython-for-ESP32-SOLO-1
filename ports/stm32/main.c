@@ -86,7 +86,7 @@
 #include "accel.h"
 #include "servo.h"
 #include "dac.h"
-#include "can.h"
+#include "pyb_can.h"
 #include "subghz.h"
 
 #if MICROPY_PY_THREAD
@@ -303,10 +303,21 @@ void stm32_main(uint32_t reset_mode) {
     // Low-level MCU initialisation.
     stm32_system_init();
 
-    #if !defined(STM32F0) && defined(MICROPY_HW_VTOR)
+    #if !defined(STM32F0)
+    #if MICROPY_HW_ENABLE_ISR_UART_FLASH_FUNCS_IN_RAM
+    // Copy IRQ vector table to RAM and point VTOR there
+    extern uint32_t __isr_vector_flash_addr, __isr_vector_ram_start, __isr_vector_ram_end;
+    size_t __isr_vector_size = (&__isr_vector_ram_end - &__isr_vector_ram_start) * sizeof(uint32_t);
+    memcpy(&__isr_vector_ram_start, &__isr_vector_flash_addr, __isr_vector_size);
+    SCB->VTOR = (uint32_t)&__isr_vector_ram_start;
+    #else
+    #if defined(MICROPY_HW_VTOR)
     // Change IRQ vector table if configured differently
     SCB->VTOR = MICROPY_HW_VTOR;
     #endif
+    #endif
+    #endif
+
 
     #if __CORTEX_M != 33
     // Enable 8-byte stack alignment for IRQ handlers, in accord with EABI
@@ -525,7 +536,7 @@ soft_reset:
     timer_init0();
 
     #if MICROPY_HW_ENABLE_CAN
-    can_init0();
+    pyb_can_init0();
     #endif
 
     #if MICROPY_HW_ENABLE_USB
@@ -667,8 +678,12 @@ soft_reset_exit:
     soft_timer_deinit();
     timer_deinit();
     uart_deinit_all();
+    spi_deinit_all();
+    #if MICROPY_PY_PYB_LEGACY && MICROPY_HW_ENABLE_HW_I2C
+    pyb_i2c_deinit_all();
+    #endif
     #if MICROPY_HW_ENABLE_CAN
-    can_deinit_all();
+    pyb_can_deinit_all();
     #endif
     #if MICROPY_HW_ENABLE_DAC
     dac_deinit_all();

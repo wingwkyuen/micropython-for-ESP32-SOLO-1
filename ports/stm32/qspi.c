@@ -34,8 +34,6 @@
 
 #if defined(MICROPY_HW_QSPIFLASH_SIZE_BITS_LOG2)
 
-#define QSPI_MAP_ADDR (0x90000000)
-
 #ifndef MICROPY_HW_QSPI_PRESCALER
 #define MICROPY_HW_QSPI_PRESCALER       3  // F_CLK = F_AHB/3 (72MHz when CPU is 216MHz)
 #endif
@@ -172,7 +170,7 @@ void qspi_memory_map(void) {
     qspi_mpu_enable_mapped();
 }
 
-static int qspi_ioctl(void *self_in, uint32_t cmd) {
+static int qspi_ioctl(void *self_in, uint32_t cmd, uintptr_t arg) {
     (void)self_in;
     switch (cmd) {
         case MP_QSPI_IOCTL_INIT:
@@ -192,6 +190,14 @@ static int qspi_ioctl(void *self_in, uint32_t cmd) {
             // Switch to memory-map mode when bus is idle
             qspi_memory_map();
             break;
+        case MP_QSPI_IOCTL_MEMORY_MODIFIED: {
+            uintptr_t *addr_len = (uintptr_t *)arg;
+            volatile void *addr = (volatile void *)(QSPI_MAP_ADDR + addr_len[0]);
+            size_t len = addr_len[1];
+            SCB_InvalidateICache_by_Addr(addr, len);
+            SCB_InvalidateDCache_by_Addr(addr, len);
+            break;
+        }
     }
     return 0; // success
 }
